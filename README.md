@@ -1,2 +1,2 @@
 # Maze Game
-Pacman but my way.
+Pacman but my version.
