@@ -23,11 +23,6 @@ BREADTH += BUFFER_HEIGHT  # increase the height/breadth
 wallwidth = WIDTH // 10  # WIDTH OF EVERY WALL
 pointRadius = WIDTH // 10
 
-# GLOBAL VARIABLES THAT KEEP TRACK OF MAZE MAKING AND PATH FINDING
-# MAKE A VARIABLE TO KNOW IF ALL CELLS ARE VISITED ( MAZE MAKING )
-all_visited = False
-# MAKE A VARIABLE TO KNOW IF THE PATH FROM START TO END IS FOUND ( PATH FINDING )
-path_found = False
 
 # CHANGE FRAME RATE OF THE MAZE MAKER
 clock = pygame.time.Clock()
@@ -128,44 +123,43 @@ class Cell:
         # THIS PART IS FOR THE MAZE MAKING...HERE THE NEIGHBOURS OF A GIVEN CELL ARE THOSE CELLS WHICH SURROUND IT (TOP,BOTTOM,LEFT,RIGHT)
         # AND ARE NOT YET VISITED
         # WALLS IN BETWEEN NEIGHBOURS ARE NOT CONSIDERED
-        if not all_visited:
-            # IF THE GIVEN CELL IS NOT THE IN FIRST ROW AND HAS A NON VISITED NEIGHBOUR ABOVE IT, APPEND IT TO NEIGHBOURS
-            if (
-                0 < self.row
-                and not GRID[self.row - 1][self.col].visited
-                and not GRID[self.row - 1][self.col].blank
-            ):
-                neighbours.append(GRID[self.row - 1][self.col])  # top
+        # IF THE GIVEN CELL IS NOT THE IN FIRST ROW AND HAS A NON VISITED NEIGHBOUR ABOVE IT, APPEND IT TO NEIGHBOURS
+        if (
+            0 < self.row
+            and not GRID[self.row - 1][self.col].visited
+            and not GRID[self.row - 1][self.col].blank
+        ):
+            neighbours.append(GRID[self.row - 1][self.col])  # top
 
-            # IF THE GIVEN CELL IS NOT THE IN LAST ROW AND HAS A NON VISITED NEIGHBOUR BELOW IT, APPEND IT TO NEIGHBOURS
-            if (
-                rows - 1 > self.row
-                and not GRID[self.row + 1][self.col].visited
-                and not GRID[self.row + 1][self.col].blank
-            ):
-                neighbours.append(GRID[self.row + 1][self.col])  # bottom
+        # IF THE GIVEN CELL IS NOT THE IN LAST ROW AND HAS A NON VISITED NEIGHBOUR BELOW IT, APPEND IT TO NEIGHBOURS
+        if (
+            rows - 1 > self.row
+            and not GRID[self.row + 1][self.col].visited
+            and not GRID[self.row + 1][self.col].blank
+        ):
+            neighbours.append(GRID[self.row + 1][self.col])  # bottom
 
-            # IF THE GIVEN CELL IS NOT THE IN FIRST COLUMN AND HAS A NON VISITED NEIGHBOUR TO THE LEFT OF IT, APPEND IT TO NEIGHBOURS
-            if (
-                0 < self.col
-                and not GRID[self.row][self.col - 1].visited
-                and not GRID[self.row][self.col - 1].blank
-            ):
-                neighbours.append(GRID[self.row][self.col - 1])  # left
+        # IF THE GIVEN CELL IS NOT THE IN FIRST COLUMN AND HAS A NON VISITED NEIGHBOUR TO THE LEFT OF IT, APPEND IT TO NEIGHBOURS
+        if (
+            0 < self.col
+            and not GRID[self.row][self.col - 1].visited
+            and not GRID[self.row][self.col - 1].blank
+        ):
+            neighbours.append(GRID[self.row][self.col - 1])  # left
 
-            # IF THE GIVEN CELL IS NOT THE IN LAST COLUMN AND HAS A NON VISITED NEIGHBOUR TO THE RIGHT OF IT, APPEND IT TO NEIGHBOURS
-            if (
-                rows - 1 > self.col
-                and not GRID[self.row][self.col + 1].visited
-                and not GRID[self.row][self.col + 1].blank
-            ):
-                neighbours.append(GRID[self.row][self.col + 1])  # right
+        # IF THE GIVEN CELL IS NOT THE IN LAST COLUMN AND HAS A NON VISITED NEIGHBOUR TO THE RIGHT OF IT, APPEND IT TO NEIGHBOURS
+        if (
+            rows - 1 > self.col
+            and not GRID[self.row][self.col + 1].visited
+            and not GRID[self.row][self.col + 1].blank
+        ):
+            neighbours.append(GRID[self.row][self.col + 1])  # right
 
-            # IF THERE ARE ANY NEIGHBOURS FOR A GIVEN CELL, THEN RETURN A RANDOM ONE, TO RANDOMISE THE FORMATION OF THE MAZE
-            if len(neighbours) > 0:
-                return neighbours[random.randint(0, len(neighbours) - 1)]
-            # IF THERE ARE NO NEIGHBOURS THAT ARE UNVISITED RETURN FALSE
-            return False
+        # IF THERE ARE ANY NEIGHBOURS FOR A GIVEN CELL, THEN RETURN A RANDOM ONE, TO RANDOMISE THE FORMATION OF THE MAZE
+        if len(neighbours) > 0:
+            return neighbours[random.randint(0, len(neighbours) - 1)]
+        # IF THERE ARE NO NEIGHBOURS THAT ARE UNVISITED RETURN FALSE
+        return False
 
     # get all unsearched neighbors for path finding
     def get_unsearched_neighbour(self, searched):
