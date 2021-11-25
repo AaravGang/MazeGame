@@ -5,352 +5,24 @@ import random  # FOR RANDOMISING THE MAZE
 import time  # FOR KEEPING TRACK OF HOW MUCH TIME IT TAKES TO GENERATE THE MAZE
 from queue import (
     LifoQueue as lifo,
-    Queue as fifo,
 )  # LIFO- USED FOR BACKTRACKING & DFS, AND FIFO- USED FOR BFS
 
 import pygame  # USE PYGAME TO CREATE THE  GUI
 
 pygame.init()
-# GLOBAL VARIABLES RELATED TO DRAWING THE MAZE
-LENGTH, BREADTH = 800, 800  # LENGTH AND BREADTH OF THE MAZE ought to be same
-BUFFER_HEIGHT = 100  # make some space for buttons and score
 
-rows = 10  # Number of rows = Number of cols
-WIDTH = int(LENGTH / rows)
+from checkquit import CheckQuit
+from constants import *
+from cell import Cell
+from button import Button
 
-BREADTH += BUFFER_HEIGHT  # increase the height/breadth
-
-wallwidth = WIDTH // 10  # WIDTH OF EVERY WALL
-pointRadius = WIDTH // 10
-
-
-# CHANGE FRAME RATE OF THE MAZE MAKER
-clock = pygame.time.Clock()
-
-# COLORS
-KHAKI = (240, 230, 140)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-LIGHTBLUE = (200, 202, 255)
-LIGHTGREEN = (20, 246, 211)
-YELLOW = (255, 255, 0)
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-PURPLE = (128, 0, 128)
-ORANGE = (255, 165, 0)
-GREY = (128, 128, 128)
-TURQUOISE = (64, 224, 208)
-BROWN = (150, 94, 0)
 
 WIN = pygame.display.set_mode((LENGTH, BREADTH))
+clock = pygame.time.Clock()
 
-
-playerR = pygame.transform.scale(
-    pygame.image.load("pacman.png"), (WIDTH // 2, WIDTH // 2)
-)
-playerU = pygame.transform.rotate(playerR, 90)
-playerL = pygame.transform.flip(playerR, True, False)
-playerD = pygame.transform.rotate(playerL, 90)
-
-chaserImg = pygame.transform.scale(
-    pygame.image.load("chaser.png"), (WIDTH // 2, WIDTH // 2)
-)
-
-scoreFont = pygame.font.Font("freesansbold.ttf", 25)
 
 with open("highscore.txt", "r") as f:
     highscore = int(f.read())
-
-
-# Class Cell. Every element in the grid is a Cell
-class Cell:
-    def __init__(self, row, col, height_buffer=0):
-        self.row = row  # ROW NUMBER
-        self.col = col  # COLUMN NUMBER
-        self.y = row * WIDTH + height_buffer  # POSITION X COORDINATE
-        self.x = col * WIDTH  # POSITION Y COORDINATE
-
-        self.visited = False  # IS IT VISITED OR NOT, USED WHILE MAZE MAKING
-        self.searched = False  # IS IT SEARCHED OR NOT, USED WHILE PATH FINDING
-        self.start = False  # IS IT THE START CELL
-        self.end = False  # IS IT THE END CELL
-        self.ispath = False  # DOES THIS CELL COME IN THE PATH
-        self.blank = False
-        # RIGHT, LEFT, TOP AND BOTTOM WALLS. CHANGE TO False TO REMOVE THEM
-        self.right = True
-        self.left = True
-        self.top = True
-        self.bottom = True
-
-        # COLORS USED FOR DRAWING THE CELL,HIGHLIGHTING IT AND DRAWING ITS WALLS
-        self.color = KHAKI
-        self.highlight_color = ORANGE
-        self.line_color = TURQUOISE
-
-        self.playerHost = False
-        self.chaserHost = False
-        self.point = True
-
-    def reinit(self):
-        self.visited = False  # IS IT VISITED OR NOT, USED WHILE MAZE MAKING
-        self.searched = False  # IS IT SEARCHED OR NOT, USED WHILE PATH FINDING
-        self.start = False  # IS IT THE START CELL
-        self.end = False  # IS IT THE END CELL
-        self.ispath = False  # DOES THIS CELL COME IN THE PATH
-        self.blank = False
-        # RIGHT, LEFT, TOP AND BOTTOM WALLS. CHANGE TO False TO REMOVE THEM
-        self.right = True
-        self.left = True
-        self.top = True
-        self.bottom = True
-
-        # COLORS USED FOR DRAWING THE CELL,HIGHLIGHTING IT AND DRAWING ITS WALLS
-        self.color = KHAKI
-        self.highlight_color = ORANGE
-        self.line_color = TURQUOISE
-
-        self.playerHost = False
-        self.chaserHost = False
-        self.point = True
-
-    # THIS FUNCTION CHECKS ALL UNVISITED NEIGHBOURS OF A CELL AND RETURNS A RANDOM ONE IF IT DOES
-    def get_neighbour(self):
-        neighbours = (
-            []
-        )  # A LIST NEIGHBOURS. TO TEMPORARILY STORE ALL NEIGHBOURS OF A GIVEN CELL
-
-        # THIS PART IS FOR THE MAZE MAKING...HERE THE NEIGHBOURS OF A GIVEN CELL ARE THOSE CELLS WHICH SURROUND IT (TOP,BOTTOM,LEFT,RIGHT)
-        # AND ARE NOT YET VISITED
-        # WALLS IN BETWEEN NEIGHBOURS ARE NOT CONSIDERED
-        # IF THE GIVEN CELL IS NOT THE IN FIRST ROW AND HAS A NON VISITED NEIGHBOUR ABOVE IT, APPEND IT TO NEIGHBOURS
-        if (
-            0 < self.row
-            and not GRID[self.row - 1][self.col].visited
-            and not GRID[self.row - 1][self.col].blank
-        ):
-            neighbours.append(GRID[self.row - 1][self.col])  # top
-
-        # IF THE GIVEN CELL IS NOT THE IN LAST ROW AND HAS A NON VISITED NEIGHBOUR BELOW IT, APPEND IT TO NEIGHBOURS
-        if (
-            rows - 1 > self.row
-            and not GRID[self.row + 1][self.col].visited
-            and not GRID[self.row + 1][self.col].blank
-        ):
-            neighbours.append(GRID[self.row + 1][self.col])  # bottom
-
-        # IF THE GIVEN CELL IS NOT THE IN FIRST COLUMN AND HAS A NON VISITED NEIGHBOUR TO THE LEFT OF IT, APPEND IT TO NEIGHBOURS
-        if (
-            0 < self.col
-            and not GRID[self.row][self.col - 1].visited
-            and not GRID[self.row][self.col - 1].blank
-        ):
-            neighbours.append(GRID[self.row][self.col - 1])  # left
-
-        # IF THE GIVEN CELL IS NOT THE IN LAST COLUMN AND HAS A NON VISITED NEIGHBOUR TO THE RIGHT OF IT, APPEND IT TO NEIGHBOURS
-        if (
-            rows - 1 > self.col
-            and not GRID[self.row][self.col + 1].visited
-            and not GRID[self.row][self.col + 1].blank
-        ):
-            neighbours.append(GRID[self.row][self.col + 1])  # right
-
-        # IF THERE ARE ANY NEIGHBOURS FOR A GIVEN CELL, THEN RETURN A RANDOM ONE, TO RANDOMISE THE FORMATION OF THE MAZE
-        if len(neighbours) > 0:
-            return neighbours[random.randint(0, len(neighbours) - 1)]
-        # IF THERE ARE NO NEIGHBOURS THAT ARE UNVISITED RETURN FALSE
-        return False
-
-    # get all unsearched neighbors for path finding
-    def get_unsearched_neighbour(self, searched):
-        neighbours = (
-            []
-        )  # A LIST NEIGHBOURS. TO TEMPORARILY STORE ALL NEIGHBOURS OF A GIVEN CELL
-
-        # THIS PART IS FOR THE PATH FINDING...HERE THE NEIGHBOURS OF A CELL ARE THOSE THAT SURROUND IT
-        # AND ARE NOT YET SEARCHED
-        # AND THERE MUST BE NO WALL BETWEEN THE TWO NEIGHBOURS
-
-        # IF THERE IS A RIGHT NEIGHBOUR THAT SATISFIES THE CONDITIONS APPEND IT
-        if not self.right and GRID[self.row][self.col + 1] not in searched:
-            neighbours.append(GRID[self.row][self.col + 1])  # right
-
-        # IF THERE IS A BOTTOM NEIGHBOUR THAT SATISFIES THE CONDITIONS APPEND IT
-        if not self.bottom and GRID[self.row + 1][self.col] not in searched:
-            neighbours.append(GRID[self.row + 1][self.col])  # bottom
-
-        # IF THERE IS A LEFT NEIGHBOUR THAT SATISFIES THE CONDITIONS APPEND IT
-        if not self.left and GRID[self.row][self.col - 1] not in searched:
-            neighbours.append(GRID[self.row][self.col - 1])  # left
-
-        # IF THERE IS A TOP NEIGHBOUR THAT SATISFIES THE CONDITIONS APPEND IT
-        if not self.top and GRID[self.row - 1][self.col] not in searched:
-            neighbours.append(GRID[self.row - 1][self.col])  # top
-
-        if len(neighbours) > 0:
-            return neighbours
-
-        return False
-
-    # CHANGE THE COLOR OF THE END CELL
-    def make_end(self):
-        self.color = LIGHTBLUE
-
-    # CHANGE THE COLOR OF THE START CELL
-    def make_start(self):
-        self.color = BROWN
-
-    # CHANGE THE COLOR OF VISITED CELLS,WHEN MAZE IS COMPLETED ALL CELLS BECOME VISITED
-    def make_visited(self):
-        if not self.end and not self.start:
-            self.color = BLACK
-
-    # CHANGE THE COLOR OF THOSE CELLS THAT COME IN THE PATH FROM START TO END
-    def make_path(self):
-        if not self.end and not self.start:
-            self.color = PURPLE
-
-    # make it a chaser
-    def make_chaser(self):
-        self.chaserHost = True
-
-    # make player
-    def make_player(self, player_img):
-        self.playerHost = True
-        self.playerImg = (
-            player_img  # start the player facing right (if this call if the player)
-        )
-
-    # HIGHLIGHT ANY CELL FOR DEBUGGING
-    def highlight(self):
-        pygame.draw.rect(WIN, self.highlight_color, (self.x, self.y, WIDTH, WIDTH), 0)
-        pygame.display.flip()
-
-    # logic to move player or chaser
-    def move(self, win, player=None):
-
-        if self.playerHost and self.chaserHost:
-            return {"defeat": True}  # game over
-
-        # logic for moving player
-        elif self.playerHost:
-            score_inc = 0
-            if self.point:
-                self.point = False
-                score_inc += 1
-                self.show(win)
-                pygame.display.update()
-                # pygame.display.set_caption(f"SCORE: {score}")
-                # write_text(scoreFont, WHITE, "SCORE: " + str(score), 100, WIDTH // 2,fill=False)
-
-            new_player = self
-            keys = pygame.key.get_pressed()
-
-            if keys[pygame.K_RIGHT] and not self.right:
-                self.playerHost = False
-                self.show(win)
-
-                new_player = GRID[self.row][self.col + 1]
-                new_player.make_player(player_img=playerR)
-                new_player.show(win)
-
-                pygame.display.update()
-
-            elif keys[pygame.K_LEFT] and not self.left:
-                self.playerHost = False
-                self.show(win)
-
-                new_player = GRID[self.row][self.col - 1]
-                new_player.make_player(player_img=playerL)
-                new_player.show(win)
-
-                pygame.display.update()
-
-            elif keys[pygame.K_UP] and not self.top:
-                self.playerHost = False
-                self.show(win)
-
-                new_player = GRID[self.row - 1][self.col]
-                new_player.make_player(player_img=playerU)
-                new_player.show(win)
-
-                pygame.display.update()
-
-            elif keys[pygame.K_DOWN] and not self.bottom:
-                self.playerHost = False
-                self.show(win)
-
-                new_player = GRID[self.row + 1][self.col]
-                new_player.make_player(player_img=playerD)
-                new_player.show(win)
-
-                pygame.display.update()
-
-            return {"player": new_player, "score_gained": score_inc}
-
-        # logic for moving chaser
-        elif self.chaserHost:
-            new_chaser = bfs(self, player)
-
-            # dont want both chasers to merge
-            if not new_chaser.chaserHost:
-                self.chaserHost = False
-                new_chaser.make_chaser()
-                self.show(win)
-                new_chaser.show(win)
-                pygame.display.update()
-
-                return {"chaser": new_chaser}
-            return {"chaser": self}
-
-    # THIS FUNCTION SHOWS THE CELL ON PYGAME WINDOW
-    def show(self, win):
-        # DRAW A RECTANGLE WITH THE DIMENSIONS OF THE CELL, TO COLOR IT
-        pygame.draw.rect(win, self.color, (self.x, self.y, WIDTH, WIDTH), 0)
-
-        # DRAW RIGHT, LEFT, TOP, BOTTOM WALLS
-        if self.right:  # RIGHT
-            pygame.draw.line(
-                win,
-                self.line_color,
-                (self.x + WIDTH, self.y),
-                (self.x + WIDTH, self.y + WIDTH),
-                width=wallwidth,
-            )
-        if self.left:  # LEFT
-            pygame.draw.line(
-                win,
-                self.line_color,
-                (self.x, self.y),
-                (self.x, self.y + WIDTH),
-                width=wallwidth,
-            )
-        if self.top:  # TOP
-            pygame.draw.line(
-                win,
-                self.line_color,
-                (self.x, self.y),
-                (self.x + WIDTH, self.y),
-                width=wallwidth,
-            )
-        if self.bottom:  # BOTTOM
-            pygame.draw.line(
-                win,
-                self.line_color,
-                (self.x, self.y + WIDTH),
-                (self.x + WIDTH, self.y + WIDTH),
-                width=wallwidth,
-            )
-
-        # draw appropriate images
-        if self.point:
-            pygame.draw.circle(
-                win, KHAKI, (self.x + WIDTH // 2, self.y + WIDTH // 2), pointRadius
-            )
-        if self.playerHost:
-            win.blit(self.playerImg, (self.x + WIDTH // 4, self.y + WIDTH // 4))
-        if self.chaserHost:
-            win.blit(chaserImg, (self.x + WIDTH // 4, self.y + WIDTH // 4))
 
 
 # CREATES THE GRID FULL OF CELLS. GRID IS 2D
@@ -441,8 +113,8 @@ def maze_algorithm():
     while not all_visited:
         CheckQuit()  # CHECK IF THE USER WANTS TO QUIT PYGAME
 
-        next = (
-            current.get_neighbour()
+        next = current.get_neighbour(
+            GRID
         )  # STEP 2.1, A RANDOM UNVISITED NEIGHBOUR. VALUE IS FALSE IF THERE ARE NONE
         if (
             next
@@ -496,52 +168,6 @@ def draw_grid():
     pygame.display.update()
 
 
-# path finding - bfs is ideal for maze
-def bfs(start_cell, end_cell):
-    # CREATE A QUEUE TO SEARCH THROUGH THE MAZE 'BREADTH FIRST'
-    Q = fifo()
-    searched = []
-    # STEP 1. MAKE THE START CELL SEARCHED AND PUSH IT TO THE QUEUE
-    searched.append(start_cell)
-    Q.put(start_cell)
-    # CREATE A HASH-MAP TO KEEP TRACK OF WHERE EACH CELL COMES FROM ( ROOT OF EACH CELL ), AND ALL THE SEARCHED CELLS
-    track = {}
-    # KEEP SEARCHING UNTIL A PATH IS FOUND
-    while True:
-        CheckQuit()  # CHECK IF THE USER WANTS TO QUIT PYGAME
-        # STEP 2
-        # POP A CELL FROM THE QUEUE AND ASSIGN IT TO ROOT
-        root = Q.get()
-        # IF ROOT IS THE END CELL, PATH HAS BEEN FOUND
-        if root == end_cell:
-            # BACKTRACK THE PATH FROM THE END CELL TO THE START CELL USING THE HASH-MAP
-            while track[root] != start_cell:
-                CheckQuit()  # CHECK IF THE USER WANTS TO QUIT PYGAME
-
-                # UPDATE ROOT TO BE THE ROOT OF THE CURRENT ROOT CELL
-                root = track[root]
-            # ANNOUNCE THE COMPLETION OF PATH
-            return root
-
-        # IF ROOT HAS ANY NEIGHBOURS, MAKE THEM ALL SEARCHED IF THEY HAVEN'T ALREADY BEEN AND PUSH THEM TO THE QUEUE
-        neighbours = root.get_unsearched_neighbour(searched)
-        if neighbours:
-            for n in neighbours:
-                searched.append(n)
-                track[n] = root
-                Q.put(n)
-
-
-# A FUNCTION TO CHECK IF THE USER WANTS TO QUIT PYGAME
-def CheckQuit():
-    # clock.tick(speed)  # SET THE FRAME RATE
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            print("Quit via user interruption")
-            pygame.quit()
-            quit()
-
-
 def write_text(font, color, text, x, y, fill=True):
     text = font.render(text, True, color)
     textRect = text.get_rect()
@@ -551,50 +177,6 @@ def write_text(font, color, text, x, y, fill=True):
         WIN.fill(BLACK, textRect)
     WIN.blit(text, textRect)
     pygame.display.flip()
-
-
-# creates maze and then starts game
-def main(player, chasers, level):
-    maze_created = False
-    run = True  # WHILE THIS IS TRUE THE MAIN LOOP WILL RUN
-
-    # DRAW THE GRID
-    draw_grid()
-    # INSTRUCT THE USER TO HIT ENTER TO START THE MAZE MAKING
-    pygame.display.set_caption("Hit Enter to start creating maze")
-    print("Hit Enter to start creating maze")
-
-    # THE MAIN GUI LOOP
-    while run:
-        for event in pygame.event.get():
-            # IF THE USER HITS THE CROSS BUTTON . CLOSE THE WINDOW
-            if event.type == pygame.QUIT:
-                run = False
-                pygame.quit()
-                quit()
-            # IF THE USER PRESSES ANY KEY PROCEED TO THE FOLLOWING
-            if event.type == pygame.KEYDOWN:
-                # IF THE USER HITS ENTER AND THE MAZE HASN'T BEEN CREATED YET, DO SO
-                if event.key == pygame.K_RETURN and not maze_created:
-                    pygame.display.set_caption("Creating Maze...")
-                    print("Creating Maze...")
-
-                    # CREATE THE MAZE
-                    maze_algorithm()
-
-                    make_easy()  # randomly remove a few walls
-
-                    pygame.display.set_caption(
-                        "Maze Created...Hit space to start game."
-                    )
-                    print("Maze Created...Hit space to start game.")
-                    maze_created = True
-
-                elif maze_created and event.key == pygame.K_SPACE:
-                    run = False
-                    break
-
-    game(player, chasers, level)
 
 
 # function to randomly remove a few walls to make it easy.
@@ -644,10 +226,12 @@ def restart(level=1):
 
     chasers = []
 
-    for _ in range(level):
+    while len(chasers) < level:
         chaser_temp = GRID[random.randint(rows // 2, rows - 1)][
             random.randint(rows // 2, rows - 1)
         ]
+        if chaser_temp in chasers:
+            continue
         chaser_temp.make_chaser()
         chasers.append(chaser_temp)
 
@@ -660,9 +244,49 @@ def restart(level=1):
     )
 
 
-# load a pic to fill in the center
-# centerPic = pygame.transform.smoothscale(pygame.image.load('pic path'), (
-# int(LENGTH - (WIDTH * ((rows // 4) * 2)) - wallwidth), (int(LENGTH - (WIDTH * ((rows // 4) * 2)) - wallwidth))))
+# creates maze and then starts game
+def main(player, chasers, level):
+    maze_created = False
+    run = True  # WHILE THIS IS TRUE THE MAIN LOOP WILL RUN
+
+    # DRAW THE GRID
+    draw_grid()
+    # INSTRUCT THE USER TO HIT ENTER TO START THE MAZE MAKING
+    pygame.display.set_caption("Hit Enter to start creating maze")
+    print("Hit Enter to start creating maze")
+
+    # THE MAIN GUI LOOP
+    while run:
+        for event in pygame.event.get():
+            # IF THE USER HITS THE CROSS BUTTON . CLOSE THE WINDOW
+            if event.type == pygame.QUIT:
+                run = False
+                pygame.quit()
+                quit()
+            # IF THE USER PRESSES ANY KEY PROCEED TO THE FOLLOWING
+            if event.type == pygame.KEYDOWN:
+                # IF THE USER HITS ENTER AND THE MAZE HASN'T BEEN CREATED YET, DO SO
+                if event.key == pygame.K_RETURN and not maze_created:
+                    pygame.display.set_caption("Creating Maze...")
+                    print("Creating Maze...")
+
+                    # CREATE THE MAZE
+                    maze_algorithm()
+
+                    make_easy()  # randomly remove a few walls
+
+                    pygame.display.set_caption(
+                        "Maze Created...Hit space to start game."
+                    )
+                    print("Maze Created...Hit space to start game.")
+                    maze_created = True
+
+                elif maze_created and event.key == pygame.K_SPACE:
+                    run = False
+                    break
+
+    game(player, chasers, level)
+
 
 # all the game logic
 def game(player, chasers, level):
@@ -680,23 +304,51 @@ def game(player, chasers, level):
     game_over = False
     defeat = False
 
-    # blit the center pic
-    # blit_pic(centerPic,(WIDTH*(rows//4)+wallwidth//2),(WIDTH*(rows//4))+wallwidth//2)
+    pause_play = Button(
+        pygame.Rect(300, 30, 50, 50), BLACK, lambda: True, **pause_play_button_style
+    )
+    paused = False
+
+    restart_button = Button(
+        pygame.Rect(500, 30, 50, 50), BLACK, lambda: True, **restart_button_style
+    )
+    score = (rows * rows) * level
 
     pygame.display.set_caption(f"Maze Game. Level: {len(chasers)}")
     print("Game started.")
 
     while run:
         clock.tick(speed)
-        CheckQuit()
+
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT:
+                print("Quit via user interruption")
+                pygame.quit()
+                quit()
+
+            if pause_play.check_event(e):
+                paused = not paused
+                pause_play.image = play_img if paused else pause_img
+
+            if restart_button.check_event(e):
+                return main(*restart(level))
+
+        pause_play.update(WIN)
+        restart_button.update(WIN)
+        pygame.display.update()
+
+        if paused:
+            continue
 
         if player:
-            payload = player.move(WIN)
+            payload = player.move(WIN, GRID)
             count += 1
 
             defeat = payload.get("defeat")
             player = payload.get("player")
-            score += payload.get("score_gained") if payload.get("score_gained") else 0
+            score += (
+                payload.get("score_gained") if payload.get("score_gained") else 0
+            ) * level
 
             write_text(scoreFont, YELLOW, f"Score: {score}", 100, 30, True)
             if score > highscore:
@@ -706,10 +358,10 @@ def game(player, chasers, level):
         if game_over:
             keys = pygame.key.get_pressed()
             if keys[pygame.K_RETURN]:
-                main(*restart(level))
-                break
+                print(level)
+                return main(*restart(level))
 
-        elif score == rows * rows:
+        elif score >= (rows * rows) * level:
             write_text(
                 pygame.font.Font("freesansbold.ttf", 100),
                 PURPLE,
@@ -743,7 +395,9 @@ def game(player, chasers, level):
 
         elif count % 5 == 0:
             for ind, c in enumerate(chasers):
-                chasers[ind] = c.move(WIN, player)["chaser"]
+                new_chaser = c.move(WIN, GRID, player).get("chaser")
+                if new_chaser:
+                    chasers[ind] = new_chaser
 
 
 if __name__ == "__main__":
