@@ -12,11 +12,11 @@ import pygame  # USE PYGAME TO CREATE THE  GUI
 
 pygame.init()
 # GLOBAL VARIABLES RELATED TO DRAWING THE MAZE
-LENGTH, BREADTH = 800, 800  # LENGTH AND BREADTH OF THE MAZE
+LENGTH, BREADTH = 800, 800  # LENGTH AND BREADTH OF THE MAZE ought to be same
 
-WIDTH = 50  # WIDTH OF EACH SQUARE
-cols = LENGTH // WIDTH  # NO. OF COLUMNS
-rows = BREADTH // WIDTH  # NO. OF ROWS
+rows = 20  # Number of rows = Number of cols
+WIDTH = int(LENGTH/rows)
+
 GRID = []  # THE ENTIRE GRID/MAZE STORED IN  A 2D ARRAY
 paths = {}  # CREATE A DICTIONARY TO STORE ALL THE ROOT CELLS OF EVERY VISITED CELL
 wallwidth = WIDTH // 10  # WIDTH OF EVERY WALL
@@ -62,7 +62,7 @@ chaserImg = pygame.transform.scale(
     pygame.image.load("chaser.png"), (WIDTH // 2, WIDTH // 2)
 )
 
-scoreFont = pygame.font.Font("freesansbold.ttf", (WIDTH // 2) - wallwidth)
+scoreFont = pygame.font.Font("freesansbold.ttf", 25)
 
 
 # Class Cell. Every element in the grid is a Cell
@@ -130,7 +130,7 @@ class Cell:
 
             # IF THE GIVEN CELL IS NOT THE IN LAST COLUMN AND HAS A NON VISITED NEIGHBOUR TO THE RIGHT OF IT, APPEND IT TO NEIGHBOURS
             if (
-                cols - 1 > self.col
+                rows - 1 > self.col
                 and not GRID[self.row][self.col + 1].visited
                 and not GRID[self.row][self.col + 1].blank
             ):
@@ -201,7 +201,7 @@ class Cell:
         global playerImg, player, chaser, score
 
         if self.playerHost and self.chaserHost:
-            return True # game over
+            return True  # game over
 
         # logic for moving player
         elif self.playerHost:
@@ -210,7 +210,8 @@ class Cell:
                 score += 1
                 self.show()
                 pygame.display.update()
-                write_text(scoreFont, WHITE, "SCORE: " + str(score), 100, WIDTH // 2)
+                pygame.display.set_caption(f"SCORE: {score}")
+                # write_text(scoreFont, WHITE, "SCORE: " + str(score), 100, WIDTH // 2,fill=False)
 
             keys = pygame.key.get_pressed()
 
@@ -315,18 +316,21 @@ class Cell:
         if self.chaserHost:
             WIN.blit(chaserImg, (self.x + WIDTH // 4, self.y + WIDTH // 4))
 
+
 # CREATES THE GRID FULL OF CELLS. GRID IS 2D
 def setup():
     for row in range(rows):
         GRID.append([])
-        for col in range(cols):
+        for col in range(rows):
             GRID[row].append(Cell(row, col))
+
 
 # empty off some space in the middle
 def make_blank(size=2):
     for i in range(rows // (2 * size), rows - (rows // (2 * size))):
-        for j in range(cols // (2 * size), cols - (cols // (2 * size))):
+        for j in range(rows // (2 * size), rows - (rows // (2 * size))):
             GRID[i][j].blank = True
+
 
 # FUNCTION TO REMOVE A WALL BETWEEN THE CURRENT AND THE NEXT CELL
 def removeWall(curr, next):
@@ -353,6 +357,7 @@ def removeWall(curr, next):
     curr.show()
     next.show()
     pygame.display.flip()
+
 
 # THE ALGORITHM FOR CREATING THE MAZE
 def maze_algorithm():
@@ -420,15 +425,17 @@ def maze_algorithm():
             # SAVE AN IMAGE OF THE MAZE
             # pygame.image.save(WIN, 'maze.png')
 
+
 # show all the cells
 def draw_grid():
     for i in range(rows):
-        for j in range(cols):
+        for j in range(rows):
             GRID[i][j].show()
 
-    # blit_pic(centerPic, (WIDTH * (cols // 4) + wallwidth // 2), (WIDTH * (rows // 4)) + wallwidth // 2)
+    # blit_pic(centerPic, (WIDTH * (rows // 4) + wallwidth // 2), (WIDTH * (rows // 4)) + wallwidth // 2)
 
     pygame.display.update()
+
 
 # path finding - bfs is ideal for maze
 def bfs(start_cell, end_cell):
@@ -465,6 +472,7 @@ def bfs(start_cell, end_cell):
                 track[n] = root
                 Q.put(n)
 
+
 # A FUNCTION TO CHECK IF THE USER WANTS TO QUIT PYGAME
 def CheckQuit():
     # clock.tick(speed)  # SET THE FRAME RATE
@@ -473,6 +481,7 @@ def CheckQuit():
             print("Quit via user interruption")
             pygame.quit()
             quit()
+
 
 def write_text(font, color, text, x, y, fill=True):
     text = font.render(text, True, color)
@@ -483,6 +492,7 @@ def write_text(font, color, text, x, y, fill=True):
         WIN.fill(BLACK, textRect)
     WIN.blit(text, textRect)
     pygame.display.flip()
+
 
 # creates maze and then starts game
 def main():
@@ -527,10 +537,11 @@ def main():
 
     game()
 
+
 # function to randomly remove a few walls to make it easy.
 def make_easy():
     for i in range(1, rows - 1):
-        for j in range(1, cols - 1):
+        for j in range(1, rows - 1):
             if not GRID[i][j].blank:
                 removeProbability = [random.randint(0, 3) for _ in range(4)]
                 if (
@@ -558,9 +569,11 @@ def make_easy():
                 ):
                     removeWall(GRID[i][j], GRID[i + 1][j])
 
+
 def blit_pic(pic, x, y):
     WIN.blit(pic, (x, y))
     pygame.display.update()
+
 
 # initialise all vars
 def restart():
@@ -585,7 +598,7 @@ restart()
 
 # load a pic to fill in the center
 # centerPic = pygame.transform.smoothscale(pygame.image.load('pic path'), (
-# int(LENGTH - (WIDTH * ((cols // 4) * 2)) - wallwidth), (int(LENGTH - (WIDTH * ((cols // 4) * 2)) - wallwidth))))
+# int(LENGTH - (WIDTH * ((rows // 4) * 2)) - wallwidth), (int(LENGTH - (WIDTH * ((rows // 4) * 2)) - wallwidth))))
 
 # all the game logic
 def game():
@@ -597,11 +610,9 @@ def game():
     pygame.display.update()
     speed = 10
     count = 0
-    write_text(
-        scoreFont, WHITE, "SCORE: " + str(score), 2 * WIDTH, rows * WIDTH + WIDTH // 2
-    )
+
     # blit the center pic
-    # blit_pic(centerPic,(WIDTH*(cols//4)+wallwidth//2),(WIDTH*(rows//4))+wallwidth//2)
+    # blit_pic(centerPic,(WIDTH*(rows//4)+wallwidth//2),(WIDTH*(rows//4))+wallwidth//2)
 
     pygame.display.set_caption("Maze Game.")
     print("Game started.")
@@ -612,7 +623,7 @@ def game():
         player.move()
         count += 1
 
-        if score == rows * cols:
+        if score == rows * rows:
             write_text(
                 pygame.font.Font("freesansbold.ttf", 100),
                 PURPLE,
@@ -621,6 +632,9 @@ def game():
                 BREADTH // 2,
                 False,
             )
+            pygame.display.set_caption("Game Over. Hit Enter to Restart.")
+            print("Game Over. Hit Enter to Restart.")
+
             keys = pygame.key.get_pressed()
             if keys[pygame.K_RETURN]:
                 restart()
@@ -635,6 +649,9 @@ def game():
                 BREADTH // 2,
                 False,
             )
+            pygame.display.set_caption("Game Over. Hit Enter to Restart.")
+            print("Game Over. Hit Enter to Restart.")
+
             keys = pygame.key.get_pressed()
             if keys[pygame.K_RETURN]:
                 restart()
