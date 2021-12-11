@@ -21,9 +21,13 @@ WIN = pygame.display.set_mode((LENGTH, BREADTH))
 clock = pygame.time.Clock()
 
 
-with open("highscore.txt", "r") as f:
-    highscore = int(f.read())
-
+try:
+    with open("highscore.txt", "r") as f:
+        highscore = int(f.read())
+except:
+    with open("highscore.txt", "w") as f:
+        f.write("0")
+        highscore = 0
 
 # CREATES THE GRID FULL OF CELLS. GRID IS 2D
 def setup(create=False, grid=None):
@@ -312,7 +316,7 @@ def game(player, chasers, level):
     restart_button = Button(
         pygame.Rect(500, 30, 50, 50), BLACK, lambda: True, **restart_button_style
     )
-    score = (rows * rows) * level
+    score = 0
 
     pygame.display.set_caption(f"Maze Game. Level: {len(chasers)}")
     print("Game started.")
