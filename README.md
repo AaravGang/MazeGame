@@ -3,7 +3,7 @@ Pacman but my version.
 
 ## Setup:
 
-## #Switch to the game's directory by:
+### Switch to the game's directory by:
 
 ```
 cd path/to/where/you/downloaded/this/foler
