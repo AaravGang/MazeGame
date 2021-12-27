@@ -19,7 +19,9 @@ If that doesen't work, use `pip` instead of `pip3`
 ### To Play:
 ```
 python3 game.py
-``` **or** if you're on windows, ```
+```
+**or** if you're on windows,
+```
 python game.py
 ```
 
