@@ -30,6 +30,7 @@ GREY = (128, 128, 128)
 TURQUOISE = (64, 224, 208)
 BROWN = (150, 94, 0)
 
+# IMAGES
 playerR = pygame.transform.scale(
     pygame.image.load("static/pacman.png"), (WIDTH // 2, WIDTH // 2)
 )

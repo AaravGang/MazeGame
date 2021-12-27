@@ -27,6 +27,7 @@ class Cell:
         self.highlight_color = ORANGE
         self.line_color = TURQUOISE
 
+        # is this cell the player or the chaser?
         self.playerHost = False
         self.chaserHost = False
         self.point = True

@@ -5,7 +5,7 @@
 <img width="1312" alt="Screen Shot 2021-12-27 at 10 16 59 PM" src="https://user-images.githubusercontent.com/86181184/147491572-39d02a18-6848-437f-b32c-4bf165c8c8dd.png">
 
 
-Online Tic Tac Toe and Connect4.
+## Online Tic Tac Toe and Connect4.
 
 ## Setup
 

@@ -1,7 +1,7 @@
 from queue import Queue as fifo
 from checkquit import CheckQuit
 
-# path finding - bfs is ideal for maze
+# path finding - bfs is ideal for maze.
 def bfs(start_cell, end_cell, grid):
     # CREATE A QUEUE TO SEARCH THROUGH THE MAZE 'BREADTH FIRST'
     Q = fifo()

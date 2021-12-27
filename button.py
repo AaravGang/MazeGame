@@ -1,6 +1,6 @@
 import pygame as pg
 
-
+# Simple button class
 class Button(object):
     def __init__(self, rect, color, function, **kwargs):
         self.rect = pg.Rect(rect)
