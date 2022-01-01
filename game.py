@@ -222,7 +222,7 @@ def blit_pic(pic, x, y):
 
 
 # initialise all vars
-def restart(level=1):
+def restart(level=4):
     setup(create=False, grid=GRID)
 
     player = GRID[0][0]
