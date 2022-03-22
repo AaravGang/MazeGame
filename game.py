@@ -86,10 +86,11 @@ def removeWall(curr, next):
         curr.bottom = False
         next.top = False
 
-    # SHOW THE UPDATED VERSIONS OF THE CURRENT AND NEXT CELL, UNCOMMENT TO SEE MAZE GENERATION  
-    # curr.show(WIN)
-    # next.show(WIN)
-    # pygame.display.flip()
+    # SHOW THE UPDATED VERSIONS OF THE CURRENT AND NEXT CELL
+    if animate_generation:
+        curr.show(WIN)
+        next.show(WIN)
+        pygame.display.flip()
 
 
 # THE ALGORITHM FOR CREATING THE MAZE
@@ -142,9 +143,10 @@ def maze_algorithm():
                 stack.get()
             )  # STEP 2.2.1. POP A CELL FROM THE STACK AND MAKE IT THE CURRENT CELL
 
-        # SHOW THE UPDATED CURRENT CELL, UNCOMMENT TO SEE MAZE GENERATION   
-        # current.show(WIN)
-        # pygame.display.flip()
+        # SHOW THE UPDATED CURRENT CELL
+        if animate_generation:
+            current.show(WIN)
+            pygame.display.flip()
 
         # ---- STEP 2 DONE ---- ALGORITHM IS COMPLETE ----
 
@@ -222,7 +224,7 @@ def blit_pic(pic, x, y):
 
 
 # initialise all vars
-def restart(level=4):
+def restart(level=1):
     setup(create=False, grid=GRID)
 
     player = GRID[0][0]
@@ -298,7 +300,6 @@ def main(player, chasers, level):
 def game(player, chasers, level):
     run = True
 
-    
     speed = 10
     count = 0
     score = 0
@@ -360,7 +361,7 @@ def game(player, chasers, level):
         if game_over:
             keys = pygame.key.get_pressed()
             if keys[pygame.K_RETURN]:
-                print("LEVEL:",level)
+                print("LEVEL:", level)
                 return main(*restart(level))
 
         elif score >= (rows * rows) * level:

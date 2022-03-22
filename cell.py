@@ -55,7 +55,7 @@ class Cell:
         self.point = True
 
     # THIS FUNCTION CHECKS ALL UNVISITED NEIGHBOURS OF A CELL AND RETURNS A RANDOM ONE IF IT DOES
-    def get_neighbour(self,grid):
+    def get_neighbour(self, grid):
         neighbours = (
             []
         )  # A LIST NEIGHBOURS. TO TEMPORARILY STORE ALL NEIGHBOURS OF A GIVEN CELL
@@ -102,7 +102,7 @@ class Cell:
         return False
 
     # get all unsearched neighbors for path finding
-    def get_unsearched_neighbour(self,grid, searched):
+    def get_unsearched_neighbour(self, grid, searched):
         neighbours = (
             []
         )  # A LIST NEIGHBOURS. TO TEMPORARILY STORE ALL NEIGHBOURS OF A GIVEN CELL
@@ -162,12 +162,12 @@ class Cell:
         )
 
     # HIGHLIGHT ANY CELL FOR DEBUGGING
-    def highlight(self,win):
+    def highlight(self, win):
         pygame.draw.rect(win, self.highlight_color, (self.x, self.y, WIDTH, WIDTH), 0)
         pygame.display.flip()
 
     # logic to move player or chaser
-    def move(self, win,grid, player=None):
+    def move(self, win, grid, player=None):
 
         if self.playerHost and self.chaserHost:
             return {"defeat": True}  # game over
@@ -180,7 +180,7 @@ class Cell:
                 score_inc += 1
                 self.show(win)
                 pygame.display.update()
-               
+
             new_player = self
             keys = pygame.key.get_pressed()
 
@@ -228,7 +228,7 @@ class Cell:
 
         # logic for moving chaser
         elif self.chaserHost:
-            new_chaser = bfs(self, player,grid)
+            new_chaser = bfs(self, player, grid)
 
             # dont want both chasers to merge
             if not new_chaser.chaserHost:
@@ -289,4 +289,3 @@ class Cell:
             win.blit(self.playerImg, (self.x + WIDTH // 4, self.y + WIDTH // 4))
         if self.chaserHost:
             win.blit(chaserImg, (self.x + WIDTH // 4, self.y + WIDTH // 4))
-

@@ -6,13 +6,15 @@ pygame.font.init()
 LENGTH, BREADTH = 800, 800  # LENGTH AND BREADTH OF THE MAZE ought to be same
 BUFFER_HEIGHT = 100  # make some space for buttons and score
 
-rows = 20  # Number of rows = Number of cols
+rows = 10  # Number of rows = Number of cols
 WIDTH = int(LENGTH / rows)
 
 BREADTH += BUFFER_HEIGHT  # increase the height/breadth
 
 wallwidth = min(WIDTH // 10, 10)  # WIDTH OF EVERY WALL
 pointRadius = min(WIDTH // 10, 10)
+
+animate_generation = False
 
 # COLORS
 KHAKI = (240, 230, 140)
