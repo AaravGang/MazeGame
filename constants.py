@@ -2,19 +2,35 @@ import pygame
 
 pygame.font.init()
 
+
+# touch related vars
+minSwipe = 30
+
+
 # GLOBAL VARIABLES RELATED TO DRAWING THE MAZE
-LENGTH, BREADTH = 800, 800  # LENGTH AND BREADTH OF THE MAZE ought to be same
-BUFFER_HEIGHT = 100  # make some space for buttons and score
+infoObject = pygame.display.Info()
 
-rows = 10  # Number of rows = Number of cols
-WIDTH = int(LENGTH / rows)
+LENGTH, BREADTH = (
+    (800, 800,)
+    if infoObject.current_w > 800 and infoObject.current_h > 800
+    else (infoObject.current_w, infoObject.current_h)
+)
 
-BREADTH += BUFFER_HEIGHT  # increase the height/breadth
+HEIGHT_BUFFER = 50  # make some space for buttons and score
 
-wallwidth = min(WIDTH // 10, 10)  # WIDTH OF EVERY WALL
-pointRadius = min(WIDTH // 10, 10)
+
+rows = 15  # Number of rows = Number of cols
+WIDTH = int((BREADTH - HEIGHT_BUFFER) / rows)
+cols = int(LENGTH / WIDTH)
+
+WIDTH_BUFFER = (LENGTH - cols * WIDTH) // 2
+
+
+wallwidth = min(WIDTH // 10, 8)  # WIDTH OF EVERY WALL
+pointRadius = min(WIDTH // 10, 8)
 
 animate_generation = False
+FPS = 10
 
 # COLORS
 KHAKI = (240, 230, 140)
@@ -46,9 +62,15 @@ chaserImg = pygame.transform.scale(
 
 scoreFont = pygame.font.Font("freesansbold.ttf", 25)
 
-pause_img = pygame.transform.scale(pygame.image.load("static/pause.png"), (50, 50))
-play_img = pygame.transform.scale(pygame.image.load("static/play.png"), (50, 50))
-restart_img = pygame.transform.scale(pygame.image.load("static/restart.png"), (50, 50))
+pause_img = pygame.transform.scale(
+    pygame.image.load("static/pause.png"), (min(WIDTH, 50), min(WIDTH, 50))
+)
+play_img = pygame.transform.scale(
+    pygame.image.load("static/play.png"), (min(WIDTH, 50), min(WIDTH, 50))
+)
+restart_img = pygame.transform.scale(
+    pygame.image.load("static/restart.png"), (min(WIDTH, 50), min(WIDTH, 50))
+)
 
 
 button_style = {

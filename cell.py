@@ -4,11 +4,11 @@ from path_finding import bfs
 
 # Class Cell. Every element in the grid is a Cell
 class Cell:
-    def __init__(self, row, col, height_buffer=0):
+    def __init__(self, row, col, width_buffer=0, height_buffer=0):
         self.row = row  # ROW NUMBER
         self.col = col  # COLUMN NUMBER
         self.y = row * WIDTH + height_buffer  # POSITION X COORDINATE
-        self.x = col * WIDTH  # POSITION Y COORDINATE
+        self.x = col * WIDTH + width_buffer  # POSITION Y COORDINATE
 
         self.visited = False  # IS IT VISITED OR NOT, USED WHILE MAZE MAKING
         self.searched = False  # IS IT SEARCHED OR NOT, USED WHILE PATH FINDING
@@ -31,6 +31,7 @@ class Cell:
         self.playerHost = False
         self.chaserHost = False
         self.point = True
+        self.chaserImg = None
 
     def reinit(self):
         self.visited = False  # IS IT VISITED OR NOT, USED WHILE MAZE MAKING
@@ -53,6 +54,7 @@ class Cell:
         self.playerHost = False
         self.chaserHost = False
         self.point = True
+        self.chaserImg = None
 
     # THIS FUNCTION CHECKS ALL UNVISITED NEIGHBOURS OF A CELL AND RETURNS A RANDOM ONE IF IT DOES
     def get_neighbour(self, grid):
@@ -89,7 +91,7 @@ class Cell:
 
         # IF THE GIVEN CELL IS NOT THE IN LAST COLUMN AND HAS A NON VISITED NEIGHBOUR TO THE RIGHT OF IT, APPEND IT TO NEIGHBOURS
         if (
-            rows - 1 > self.col
+            cols - 1 > self.col
             and not grid[self.row][self.col + 1].visited
             and not grid[self.row][self.col + 1].blank
         ):
@@ -151,8 +153,9 @@ class Cell:
             self.color = PURPLE
 
     # make it a chaser
-    def make_chaser(self):
+    def make_chaser(self, img):
         self.chaserHost = True
+        self.chaserImg = img
 
     # make player
     def make_player(self, player_img):
@@ -167,7 +170,7 @@ class Cell:
         pygame.display.flip()
 
     # logic to move player or chaser
-    def move(self, win, grid, player=None):
+    def move(self, win, grid, player=None, swipe=-1):
 
         if self.playerHost and self.chaserHost:
             return {"defeat": True}  # game over
@@ -184,7 +187,7 @@ class Cell:
             new_player = self
             keys = pygame.key.get_pressed()
 
-            if keys[pygame.K_RIGHT] and not self.right:
+            if (keys[pygame.K_RIGHT] or swipe == 1) and not self.right:
                 self.playerHost = False
                 self.show(win)
 
@@ -194,7 +197,7 @@ class Cell:
 
                 pygame.display.update()
 
-            elif keys[pygame.K_LEFT] and not self.left:
+            elif (keys[pygame.K_LEFT] or swipe == 2) and not self.left:
                 self.playerHost = False
                 self.show(win)
 
@@ -204,22 +207,22 @@ class Cell:
 
                 pygame.display.update()
 
-            elif keys[pygame.K_UP] and not self.top:
-                self.playerHost = False
-                self.show(win)
-
-                new_player = grid[self.row - 1][self.col]
-                new_player.make_player(player_img=playerU)
-                new_player.show(win)
-
-                pygame.display.update()
-
-            elif keys[pygame.K_DOWN] and not self.bottom:
+            elif (keys[pygame.K_DOWN] or swipe == 3) and not self.bottom:
                 self.playerHost = False
                 self.show(win)
 
                 new_player = grid[self.row + 1][self.col]
                 new_player.make_player(player_img=playerD)
+                new_player.show(win)
+
+                pygame.display.update()
+
+            elif (keys[pygame.K_UP] or swipe == 4) and not self.top:
+                self.playerHost = False
+                self.show(win)
+
+                new_player = grid[self.row - 1][self.col]
+                new_player.make_player(player_img=playerU)
                 new_player.show(win)
 
                 pygame.display.update()
@@ -233,7 +236,8 @@ class Cell:
             # dont want both chasers to merge
             if not new_chaser.chaserHost:
                 self.chaserHost = False
-                new_chaser.make_chaser()
+                new_chaser.make_chaser(self.chaserImg)
+                self.chaserImg = None
                 self.show(win)
                 new_chaser.show(win)
                 pygame.display.update()
@@ -288,4 +292,5 @@ class Cell:
         if self.playerHost:
             win.blit(self.playerImg, (self.x + WIDTH // 4, self.y + WIDTH // 4))
         if self.chaserHost:
-            win.blit(chaserImg, (self.x + WIDTH // 4, self.y + WIDTH // 4))
+            win.blit(self.chaserImg, (self.x + WIDTH // 4, self.y + WIDTH // 4))
+
