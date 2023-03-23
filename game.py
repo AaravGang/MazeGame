@@ -5,22 +5,19 @@ import random  # FOR RANDOMISING THE MAZE
 import time  # FOR KEEPING TRACK OF HOW MUCH TIME IT TAKES TO GENERATE THE MAZE
 from queue import (
     LifoQueue as lifo,
+    Queue as fifo,
 )  # LIFO- USED FOR BACKTRACKING & DFS, AND FIFO- USED FOR BFS
 
 import pygame  # USE PYGAME TO CREATE THE  GUI
 import asyncio
+from threading import Thread
 
 pygame.init()
 
 from checkquit import CheckQuit
 from constants import *
-from cell import Cell
+from cell import Cell, Player
 from button import Button
-
-
-WIN = pygame.display.set_mode((LENGTH, BREADTH))
-clock = pygame.time.Clock()
-
 
 try:
     with open("highscore.txt", "r") as f:
@@ -30,7 +27,10 @@ except:
         f.write("0")
         highscore = 0
 
+WIN = pygame.display.set_mode((LENGTH, BREADTH))
+clock = pygame.time.Clock()
 
+# LOGIC
 # CREATES THE GRID FULL OF CELLS. GRID IS 2D
 def setup(create=False, grid=None):
     if create:
@@ -55,7 +55,7 @@ GRID = setup(create=True)  # THE ENTIRE GRID/MAZE STORED IN  A 2D ARRAY
 start = GRID[0][0]
 end = GRID[-1][-1]
 
-
+# LOGIC
 # change highscore
 def change_highscore(s):
     global highscore
@@ -64,6 +64,7 @@ def change_highscore(s):
         f.write(str(highscore))
 
 
+# LOGIC
 # empty off some space in the middle where ghosts live
 def make_den(size=2):
     for i in range(rows // 2 - 1, rows // 2 + rows % 2 + 1):
@@ -94,9 +95,9 @@ def removeWall(curr, next):
 
     # SHOW THE UPDATED VERSIONS OF THE CURRENT AND NEXT CELL
     if animate_generation:
-        curr.show(WIN)
-        next.show(WIN)
-        pygame.display.flip()
+        curr.show_(WIN, True)
+        next.show_(WIN, True)
+        pygame.display.update()
 
 
 # THE ALGORITHM FOR CREATING THE MAZE
@@ -151,8 +152,8 @@ def maze_algorithm():
 
         # SHOW THE UPDATED CURRENT CELL
         if animate_generation:
-            current.show(WIN)
-            pygame.display.flip()
+            current.show(WIN, True)
+            pygame.display.update()
 
         # ---- STEP 2 DONE ---- ALGORITHM IS COMPLETE ----
 
@@ -167,14 +168,19 @@ def maze_algorithm():
             # pygame.image.save(WIN, 'maze.png')
 
 
+# GRAPHICS
 # show all the cells
-def draw_grid():
-    WIN.fill(BLACK)
+def draw_grid(player=None, chasers=[], force=False, fill=False, update=True):
+    if fill:
+        WIN.fill(BLACK)
     for i in range(rows):
         for j in range(cols):
-            GRID[i][j].show(WIN)
+            GRID[i][j].show_(WIN, force)
+    if player:
+        player.show_(WIN, force)
 
-    # pygame.draw.rect(WIN,TURQUOISE,(GRID[0][0].x,GRID[0][0].y,cols*WIDTH,rows*WIDTH),width=wallwidth)
+    for chaser in chasers:
+        chaser.show_(WIN, force)
 
     # blit_pic(centerPic, (WIDTH * (cols // 4) + wallwidth // 2), (WIDTH * (rows // 4)) + wallwidth // 2)
     write_text(
@@ -186,9 +192,11 @@ def draw_grid():
         True,
     )
 
-    pygame.display.update()
+    if update:
+        pygame.display.update()
 
 
+# GRAPHICS
 def write_text(font, color, text, x, y, fill=True, center=False):
     text = font.render(text, True, color)
     textRect = text.get_rect()
@@ -200,11 +208,10 @@ def write_text(font, color, text, x, y, fill=True, center=False):
     if fill:
         WIN.fill(BLACK, textRect)
     WIN.blit(text, textRect)
-    pygame.display.flip()
 
 
 # function to randomly remove a few walls to make it easy.
-def make_easy(difficulty=25):  # simplicity: 25 %
+def make_easy(difficulty=25):  # difficullty: 25 %
     for i in range(1, rows - 1):
         for j in range(1, cols - 1):
             if not GRID[i][j].blank:
@@ -220,29 +227,31 @@ def make_easy(difficulty=25):  # simplicity: 25 %
                     removeWall(GRID[i][j], GRID[i][j + 1])
                 if (
                     GRID[i][j].left
-                    and 0 in removeProbability
+                    and 1 in removeProbability
                     and not GRID[i][j - 1].blank
                 ):
                     removeWall(GRID[i][j], GRID[i][j - 1])
                 if (
                     GRID[i][j].top
-                    and 0 in removeProbability
+                    and 2 in removeProbability
                     and not GRID[i - 1][j].blank
                 ):
                     removeWall(GRID[i][j], GRID[i - 1][j])
                 if (
                     GRID[i][j].bottom
-                    and 0 in removeProbability
+                    and 3 in removeProbability
                     and not GRID[i + 1][j].blank
                 ):
                     removeWall(GRID[i][j], GRID[i + 1][j])
 
 
+# GRAPHICS
 def blit_pic(pic, x, y):
     WIN.blit(pic, (x, y))
     pygame.display.update()
 
 
+# ??
 # random colored chaser
 def rand_chaser(image, color):
     image = image.copy()
@@ -256,8 +265,11 @@ def rand_chaser(image, color):
 def restart(level=1):
     setup(create=False, grid=GRID)
 
-    player = GRID[0][0]
-    player.make_player(player_img=playerR)
+    playerHost = GRID[0][0]
+    playerHost.make_player_host()
+    player = Player(
+        playerHost, 0, 0, width_buffer=WIDTH_BUFFER, height_buffer=HEIGHT_BUFFER
+    )
 
     chasers = []
 
@@ -284,7 +296,7 @@ def restart(level=1):
         )
         chasers.append(chaser_temp)
 
-    draw_grid()
+    draw_grid(player=player, force=True, fill=True)
 
     return (
         player,
@@ -293,11 +305,11 @@ def restart(level=1):
     )
 
 
+# LOGIC
 # Function to detect swipes
 # -1 is that it was not detected as a swipe or click
 # It will return 1 , 2 for horizontal swipe
 # If the swipe is vertical will return 3, 4
-# If it was a click it will return 0
 def getSwipeType(rel):
     x, y = rel if rel else pygame.mouse.get_rel()
     if abs(x) <= minSwipe:
@@ -314,25 +326,109 @@ def getSwipeType(rel):
     return -1
 
 
+class Logic:
+    CHASER_SLOWER = 10
+    # MAX_SWIPE_DELAY = 250  # ms
+
+    def __init__(self, data, touch):
+        self.data = data
+        self.__dict__.update(data)
+        self.max_score = self.level * rows * cols
+        self.run = True
+        self.touch = touch
+
+    async def move_player(self,):
+        while self.run:
+            clock.tick(FPS)
+            await asyncio.sleep(0)
+
+            if self.paused:
+                continue
+
+            # on pc, use keys
+            if not self.touch:
+                self.player.move()
+
+            # on mobile, use touch
+            else:
+                for move in self.player.get_moves():
+                    if move in self.swipes:
+                        ind = self.swipes.index(move)
+                        self.swipes = self.swipes[ind:]
+                        self.player.move(move)
+
+        return
+
+    async def mainloop(self,):
+        count = 0
+        while self.run:
+            clock.tick(FPS)
+            await asyncio.sleep(0)
+
+            if self.paused:
+                continue
+
+            count += 1
+
+            payload = self.player.forward(GRID)
+            defeat = payload.get("defeat")
+
+            if defeat:
+                self.defeat = True
+                self.run = False
+                break
+
+            self.score += (
+                payload.get("score_gained") if payload.get("score_gained") else 0
+            ) * self.level
+
+            if self.score > highscore:
+                change_highscore(self.score)
+
+            if self.score >= self.max_score:
+                self.victory = True
+                self.run = False
+                break
+
+            if count % self.CHASER_SLOWER == 0:
+                for ind, c in enumerate(self.chasers):
+                    payload = c.move(GRID, self.player.host)
+                    new_chaser = payload.get("chaser")
+                    defeat = payload.get("defeat")
+                    if defeat:
+                        self.defeat = True
+                        self.run = False
+                        break
+
+                    elif new_chaser:
+                        self.chasers[ind] = new_chaser
+
+                count = 0
+
+        return
+
+    def stop(self):
+        self.game_over = True
+        self.run = False
+
+
 # creates maze and then starts game
 async def main(player, chasers, level):
+    global FPS
     run = True  # WHILE THIS IS TRUE THE MAIN LOOP WILL RUN
 
-    # DRAW THE GRID
-    draw_grid()
     pygame.display.set_caption("Creating Maze...")
     print("Creating Maze...")
 
     # CREATE THE MAZE
     maze_algorithm()
-
-    make_easy(min(100, 75))  # randomly remove a few walls
-
-    draw_grid()
+    make_easy(75)  # randomly remove a few walls
+    draw_grid(player, force=True, fill=True)
 
     pygame.display.set_caption("Hit space to start game.")
     print("Maze Created...Hit space to start game.")
     maze_created = True
+    touch = False
 
     # THE MAIN GUI LOOP
     while run:
@@ -342,25 +438,28 @@ async def main(player, chasers, level):
                 run = False
                 pygame.quit()
                 quit()
+
             # IF THE USER PRESSES ANY KEY PROCEED TO THE FOLLOWING
-            if event.type == pygame.KEYDOWN or pygame.MOUSEBUTTONUP:
+            if event.type == pygame.KEYDOWN:
                 if maze_created:  # and event.key == pygame.K_SPACE:
+                    run = False
+                    break
+            #  IF THE USERS CLICKS ON THE SCREEN PROCEED
+            if event.type == pygame.MOUSEBUTTONUP:
+                if maze_created:  # and event.key == pygame.K_SPACE:
+                    touch = event.touch
+                    if touch:
+                        FPS = 30
                     run = False
                     break
 
         await asyncio.sleep(0)
-    await game(player, chasers, level)
+    await game(player, chasers, level, touch)
 
 
 # all the game logic
-async def game(player, chasers, level):
+async def game(player, chasers, level, touch):
     run = True
-
-    count = 0
-    score = 0
-
-    game_over = False
-    defeat = False
 
     pause_play = Button(
         pygame.Rect(
@@ -386,11 +485,34 @@ async def game(player, chasers, level):
         lambda: True,
         **restart_button_style,
     )
-    score = 0
-
     pygame.display.set_caption(f"Level: {len(chasers)}")
     print("Game started.")
-    swipe = 0
+
+    data = {
+        "swipes": [],
+        "paused": False,
+        "defeat": False,
+        "game_over": False,
+        "player": player,
+        "chasers": chasers,
+        "score": 0,
+        "victory": False,
+        "level": level,
+    }
+
+    logic = Logic(data, touch)
+    main_logic = Thread(
+        target=asyncio.run, name="main-logic", args=(logic.mainloop(),), daemon=True
+    )
+    player_logic = Thread(
+        target=asyncio.run,
+        name="player-logic",
+        args=(logic.move_player(),),
+        daemon=True,
+    )
+
+    main_logic.start()
+    player_logic.start()
 
     while run:
         clock.tick(FPS)
@@ -399,64 +521,40 @@ async def game(player, chasers, level):
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
                 print("Quit via user interruption")
+                logic.stop()
                 pygame.quit()
                 quit()
 
             if e.type == pygame.MOUSEMOTION:
                 if e.touch:
-                    s = getSwipeType(e.rel)
-                    if s > 0:
-                        swipe = s
-
-            if e.type == pygame.KEYDOWN:
-                swipe = 0
+                    logic.swipes.append(getSwipeType(e.rel))
 
             if pause_play.check_event(e):
                 paused = not paused
+                logic.paused = paused
                 pause_play.image = play_img if paused else pause_img
 
             if restart_button.check_event(e):
+                logic.stop()
                 return await main(*restart(level))
 
         pause_play.update(WIN)
         restart_button.update(WIN)
+        write_text(
+            scoreFont, YELLOW, f"Score: {logic.score}", 10, 10, True,
+        )
 
-        pygame.display.update()
+        draw_grid(player=player, chasers=chasers, update=False)
 
-        if paused:
-            continue
-
-        if player:
-            payload = player.move(WIN, GRID, swipe=swipe)
-            count += 1
-
-            defeat = payload.get("defeat")
-            player = payload.get("player")
-            score += (
-                payload.get("score_gained") if payload.get("score_gained") else 0
-            ) * level
-
-            write_text(
-                scoreFont, YELLOW, f"Score: {score}", 10, 10, True,
-            )
-            if score > highscore:
-                change_highscore(score)
-            write_text(
-                scoreFont,
-                TURQUOISE,
-                f"High Score: {highscore}",
-                LENGTH - max(100, scoreFont.size(f"High Score: {highscore}")[0] + 10),
-                10,
-                True,
-            )
-
-        if game_over:
+        if logic.game_over:
             keys = pygame.key.get_pressed()
             if keys[pygame.K_RETURN] or pygame.mouse.get_pressed()[0]:
-                print("LEVEL:", level)
                 return await main(*restart(level))
 
-        elif score >= (rows * cols) * level:
+        elif paused:
+            continue
+
+        elif logic.victory:
             write_text(
                 pygame.font.Font("freesansbold.ttf", 100),
                 PURPLE,
@@ -471,10 +569,9 @@ async def game(player, chasers, level):
             print("Game Over. Hit Enter to Restart.")
 
             level += 1
+            logic.stop()
 
-            game_over = True
-
-        elif defeat:
+        elif logic.defeat:
             write_text(
                 pygame.font.Font("freesansbold.ttf", 100),
                 PURPLE,
@@ -487,15 +584,9 @@ async def game(player, chasers, level):
 
             pygame.display.set_caption("Hit Enter to Restart.")
             print("Game Over. Hit Enter to Restart.")
+            logic.stop()
 
-            game_over = True
-
-        elif count % 10 == 0:
-            for ind, c in enumerate(chasers):
-                new_chaser = c.move(WIN, GRID, player).get("chaser")
-                if new_chaser:
-                    chasers[ind] = new_chaser
-            count = 0
+        pygame.display.update()
 
 
 if __name__ == "__main__":

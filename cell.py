@@ -33,6 +33,8 @@ class Cell:
         self.point = True
         self.chaserImg = None
 
+        self._show = False
+
     def reinit(self):
         self.visited = False  # IS IT VISITED OR NOT, USED WHILE MAZE MAKING
         self.searched = False  # IS IT SEARCHED OR NOT, USED WHILE PATH FINDING
@@ -55,6 +57,7 @@ class Cell:
         self.chaserHost = False
         self.point = True
         self.chaserImg = None
+        self._show = False
 
     # THIS FUNCTION CHECKS ALL UNVISITED NEIGHBOURS OF A CELL AND RETURNS A RANDOM ONE IF IT DOES
     def get_neighbour(self, grid):
@@ -158,139 +161,159 @@ class Cell:
         self.chaserImg = img
 
     # make player
-    def make_player(self, player_img):
+    def make_player_host(self):
         self.playerHost = True
-        self.playerImg = (
-            player_img  # start the player facing right (if this call if the player)
-        )
 
     # HIGHLIGHT ANY CELL FOR DEBUGGING
     def highlight(self, win):
         pygame.draw.rect(win, self.highlight_color, (self.x, self.y, WIDTH, WIDTH), 0)
-        pygame.display.flip()
+        pygame.display.update()
 
     # logic to move player or chaser
-    def move(self, win, grid, player=None, swipe=-1):
+    def move(self, grid, player_host):
 
         if self.playerHost and self.chaserHost:
             return {"defeat": True}  # game over
 
-        # logic for moving player
-        elif self.playerHost:
-            score_inc = 0
-            if self.point:
-                self.point = False
-                score_inc += 1
-                self.show(win)
-                pygame.display.update()
-
-            new_player = self
-            keys = pygame.key.get_pressed()
-
-            if (keys[pygame.K_RIGHT] or swipe == 1) and not self.right:
-                self.playerHost = False
-                self.show(win)
-
-                new_player = grid[self.row][self.col + 1]
-                new_player.make_player(player_img=playerR)
-                new_player.show(win)
-
-                pygame.display.update()
-
-            elif (keys[pygame.K_LEFT] or swipe == 2) and not self.left:
-                self.playerHost = False
-                self.show(win)
-
-                new_player = grid[self.row][self.col - 1]
-                new_player.make_player(player_img=playerL)
-                new_player.show(win)
-
-                pygame.display.update()
-
-            elif (keys[pygame.K_DOWN] or swipe == 3) and not self.bottom:
-                self.playerHost = False
-                self.show(win)
-
-                new_player = grid[self.row + 1][self.col]
-                new_player.make_player(player_img=playerD)
-                new_player.show(win)
-
-                pygame.display.update()
-
-            elif (keys[pygame.K_UP] or swipe == 4) and not self.top:
-                self.playerHost = False
-                self.show(win)
-
-                new_player = grid[self.row - 1][self.col]
-                new_player.make_player(player_img=playerU)
-                new_player.show(win)
-
-                pygame.display.update()
-
-            return {"player": new_player, "score_gained": score_inc}
-
         # logic for moving chaser
         elif self.chaserHost:
-            new_chaser = bfs(self, player, grid)
+            new_chaser = bfs(self, player_host, grid)
 
             # dont want both chasers to merge
             if not new_chaser.chaserHost:
                 self.chaserHost = False
                 new_chaser.make_chaser(self.chaserImg)
                 self.chaserImg = None
-                self.show(win)
-                new_chaser.show(win)
-                pygame.display.update()
+                self.show()
+                new_chaser.show()
 
                 return {"chaser": new_chaser}
             return {"chaser": self}
 
+    def show_(self, win, force=False):
+        if self._show or force:
+            # DRAW A RECTANGLE WITH THE DIMENSIONS OF THE CELL, TO COLOR IT
+            pygame.draw.rect(win, self.color, (self.x, self.y, WIDTH, WIDTH), 0)
+
+            # DRAW RIGHT, LEFT, TOP, BOTTOM WALLS
+            if self.right:  # RIGHT
+                pygame.draw.line(
+                    win,
+                    self.line_color,
+                    (self.x + WIDTH, self.y),
+                    (self.x + WIDTH, self.y + WIDTH),
+                    width=wallwidth,
+                )
+            if self.left:  # LEFT
+                pygame.draw.line(
+                    win,
+                    self.line_color,
+                    (self.x, self.y),
+                    (self.x, self.y + WIDTH),
+                    width=wallwidth,
+                )
+            if self.top:  # TOP
+                pygame.draw.line(
+                    win,
+                    self.line_color,
+                    (self.x, self.y),
+                    (self.x + WIDTH, self.y),
+                    width=wallwidth,
+                )
+            if self.bottom:  # BOTTOM
+                pygame.draw.line(
+                    win,
+                    self.line_color,
+                    (self.x, self.y + WIDTH),
+                    (self.x + WIDTH, self.y + WIDTH),
+                    width=wallwidth,
+                )
+
+            # draw appropriate images
+            if self.point:
+                pygame.draw.circle(
+                    win, KHAKI, (self.x + WIDTH // 2, self.y + WIDTH // 2), pointRadius
+                )
+            if self.chaserHost:
+                win.blit(self.chaserImg, (self.x + WIDTH // 4, self.y + WIDTH // 4))
+
+            self._show = False
+
     # THIS FUNCTION SHOWS THE CELL ON PYGAME WINDOW
-    def show(self, win):
-        # DRAW A RECTANGLE WITH THE DIMENSIONS OF THE CELL, TO COLOR IT
-        pygame.draw.rect(win, self.color, (self.x, self.y, WIDTH, WIDTH), 0)
+    def show(self):
+        self._show = True
 
-        # DRAW RIGHT, LEFT, TOP, BOTTOM WALLS
-        if self.right:  # RIGHT
-            pygame.draw.line(
-                win,
-                self.line_color,
-                (self.x + WIDTH, self.y),
-                (self.x + WIDTH, self.y + WIDTH),
-                width=wallwidth,
-            )
-        if self.left:  # LEFT
-            pygame.draw.line(
-                win,
-                self.line_color,
-                (self.x, self.y),
-                (self.x, self.y + WIDTH),
-                width=wallwidth,
-            )
-        if self.top:  # TOP
-            pygame.draw.line(
-                win,
-                self.line_color,
-                (self.x, self.y),
-                (self.x + WIDTH, self.y),
-                width=wallwidth,
-            )
-        if self.bottom:  # BOTTOM
-            pygame.draw.line(
-                win,
-                self.line_color,
-                (self.x, self.y + WIDTH),
-                (self.x + WIDTH, self.y + WIDTH),
-                width=wallwidth,
-            )
 
-        # draw appropriate images
-        if self.point:
-            pygame.draw.circle(
-                win, KHAKI, (self.x + WIDTH // 2, self.y + WIDTH // 2), pointRadius
-            )
-        if self.playerHost:
+# Player
+class Player(Cell):
+    def __init__(self, host, row, col, width_buffer, height_buffer):
+        super().__init__(row, col, width_buffer, height_buffer)
+        self.direction = 1
+        self.host = host
+        self.playerImg = playerR
+
+    def forward(
+        self, grid,
+    ):
+
+        score_inc = 0
+
+        if self.host.point:
+            self.host.point = False
+            score_inc += 1
+
+        self.host.show()
+
+        if self.host.chaserHost:
+            return {"defeat": True}
+
+        self.host.playerHost = False
+        new_host = self.host
+
+        if self.direction == 1 and not self.host.right:
+            new_host = grid[self.row][self.col + 1]
+        elif self.direction == 2 and not self.host.left:
+            new_host = grid[self.row][self.col - 1]
+        elif self.direction == 3 and not self.host.bottom:
+            new_host = grid[self.row + 1][self.col]
+        elif self.direction == 4 and not self.host.top:
+            new_host = grid[self.row - 1][self.col]
+
+        self.change_host(new_host)
+        new_host.make_player_host()
+        new_host.show()
+        self.show()
+
+        return {"score_gained": score_inc}
+
+    def change_host(self, host):
+        self.host = host
+        self.x, self.y = host.x, host.y
+        self.row, self.col = host.row, host.col
+
+    def move(self, swipe=0):
+        # logic for moving player
+
+        keys = pygame.key.get_pressed()
+
+        if (keys[pygame.K_RIGHT] or swipe == 1) and not self.host.right:
+            self.direction = 1
+            self.playerImg = playerR
+
+        elif (keys[pygame.K_LEFT] or swipe == 2) and not self.host.left:
+            self.direction = 2
+            self.playerImg = playerL
+
+        elif (keys[pygame.K_DOWN] or swipe == 3) and not self.host.bottom:
+            self.direction = 3
+            self.playerImg = playerD
+
+        elif (keys[pygame.K_UP] or swipe == 4) and not self.host.top:
+            self.direction = 4
+            self.playerImg = playerU
+
+    def show_(self, win, force=False):
+        if self._show or force:
             win.blit(self.playerImg, (self.x + WIDTH // 4, self.y + WIDTH // 4))
-        if self.chaserHost:
-            win.blit(self.chaserImg, (self.x + WIDTH // 4, self.y + WIDTH // 4))
+            self._show = False
 
