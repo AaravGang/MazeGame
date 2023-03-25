@@ -5,7 +5,7 @@ pygame.font.init()
 
 
 # touch related vars
-minSwipe = 0
+minSwipe = 50
 
 
 # GLOBAL VARIABLES RELATED TO DRAWING THE MAZE

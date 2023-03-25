@@ -312,15 +312,16 @@ def restart(level=1):
 # If the swipe is vertical will return 3, 4
 def getSwipeType(rel):
     x, y = rel if rel else pygame.mouse.get_rel()
+    print(x, y)
     if abs(x) <= minSwipe:
-        if y > minSwipe // 2:
+        if y > 0:
             return 3
-        elif y < -minSwipe // 2:
+        elif y < 0:
             return 4
     elif abs(y) <= minSwipe:
-        if x > minSwipe // 2:
+        if x > 0:
             return 1
-        elif x < -minSwipe // 2:
+        elif x < 0:
             return 2
 
     return -1
@@ -345,18 +346,25 @@ class Logic:
             if self.paused:
                 continue
 
+            # on mobile, use touch
             # on pc, use keys
             if not self.touch:
-                self.player.move()
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_RIGHT]:
+                    self.moves.append(1)
+                if keys[pygame.K_LEFT]:
+                    self.moves.append(2)
+                if keys[pygame.K_DOWN]:
+                    self.moves.append(3)
+                if keys[pygame.K_UP]:
+                    self.moves.append(4)
 
-            # on mobile, use touch
-            else:
-                for move in self.player.get_moves():
-                    if move in self.swipes:
-                        ind = self.swipes.index(move)
-                        self.swipes = self.swipes[ind:]
-                        self.player.move(move)
-
+            # check through all the moves played thus far and select most appropriate one
+            for move in self.player.get_moves():
+                if move in self.moves:
+                    ind = self.moves.index(move)
+                    self.moves = self.moves[ind:]
+                    self.player.move(move)
         return
 
     async def mainloop(self,):
@@ -489,7 +497,7 @@ async def game(player, chasers, level, touch):
     print("Game started.")
 
     data = {
-        "swipes": [],
+        "moves": [],
         "paused": False,
         "defeat": False,
         "game_over": False,
@@ -525,9 +533,15 @@ async def game(player, chasers, level, touch):
                 pygame.quit()
                 quit()
 
+            # if e.type == pygame.MOUSEBUTTONDOWN:
+            #     pygame.mouse.get_rel()
+
+            # if e.type == pygame.MOUSEBUTTONUP:
+            #     logic.moves.append(getSwipeType(pygame.mouse.get_rel()))
+
             if e.type == pygame.MOUSEMOTION:
                 if e.touch:
-                    logic.swipes.append(getSwipeType(e.rel))
+                    logic.moves.append(getSwipeType(e.rel))
 
             if pause_play.check_event(e):
                 paused = not paused

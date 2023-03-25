@@ -291,26 +291,33 @@ class Player(Cell):
         self.x, self.y = host.x, host.y
         self.row, self.col = host.row, host.col
 
-    def move(self, swipe=0):
+    def move(self, move=0):
         # logic for moving player
-
-        keys = pygame.key.get_pressed()
-
-        if (keys[pygame.K_RIGHT] or swipe == 1) and not self.host.right:
+        if (move == 1) and not self.host.right:
             self.direction = 1
             self.playerImg = playerR
 
-        elif (keys[pygame.K_LEFT] or swipe == 2) and not self.host.left:
+        elif (move == 2) and not self.host.left:
             self.direction = 2
             self.playerImg = playerL
 
-        elif (keys[pygame.K_DOWN] or swipe == 3) and not self.host.bottom:
+        elif (move == 3) and not self.host.bottom:
             self.direction = 3
             self.playerImg = playerD
 
-        elif (keys[pygame.K_UP] or swipe == 4) and not self.host.top:
+        elif (move == 4) and not self.host.top:
             self.direction = 4
             self.playerImg = playerU
+
+    def get_moves(self):
+        if not self.host.right:
+            yield 1
+        if not self.host.left:
+            yield 2
+        if not self.host.bottom:
+            yield 3
+        if not self.host.top:
+            yield 4
 
     def show_(self, win, force=False):
         if self._show or force:
